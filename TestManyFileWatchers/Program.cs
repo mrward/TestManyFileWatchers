@@ -41,7 +41,7 @@ namespace TestManyFileWatchers
 		{
 			Task.Run (async () => await CreateFileWatchers ());
 			//Task.Run (async () => await CreateThreads ());
-			Console.WriteLine ("Press a key to quit.");
+			//Console.WriteLine ("Press a key to quit.");
 			Console.ReadKey ();
 		}
 
@@ -51,10 +51,23 @@ namespace TestManyFileWatchers
 
 		static async Task CreateFileWatchers ()
 		{
+			bool createMoreFileWatchers = true;
 			while (true) {
 				bool result = await TestHttpConnection ();
-				if (!result) {
-					return;
+				if (result) {
+					if (!createMoreFileWatchers) {
+						Console.WriteLine ("Recovered - http requests now working");
+					}
+				} else {
+					if (createMoreFileWatchers) {
+						createMoreFileWatchers = false;
+						DisposeFileWatchers ();
+					}
+					Thread.Sleep (1000);
+				}
+
+				if (!createMoreFileWatchers) {
+					continue;
 				}
 
 				var watcher = new FileSystemWatcher ();
@@ -70,6 +83,18 @@ namespace TestManyFileWatchers
 					countToLog += increment;
 				}
 			}
+		}
+
+		static void DisposeFileWatchers ()
+		{
+			Console.WriteLine ("Disposing all file watchers.");
+			foreach (var watcher in Watchers) {
+				watcher.EnableRaisingEvents = false;
+				watcher.Dispose ();
+			}
+
+			Watchers.Clear ();
+			GC.Collect ();
 		}
 
 		static List<Thread> threads = new List<Thread> ();
